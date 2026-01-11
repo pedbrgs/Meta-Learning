@@ -176,6 +176,8 @@ def evaluate_context_vector(ccea, subset: str) -> pd.DataFrame:
         orient="index"
     ).transpose()
     metrics.columns = [f"{subset}_{col}" for col in metrics.columns]
+    del evaluator
+    gc.collect()
     return metrics
 
 
