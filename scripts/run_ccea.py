@@ -44,7 +44,7 @@ def list_datasets(data_dir: str) -> list:
             })
     data = pd.DataFrame(data_stats)
     data["computational_effort"] = data["num_samples"] + data["num_features"]
-    return data.sort_values("computational_effort")["data_path"].values.tolist()
+    return data.sort_values("computational_effort", ascending=False)["data_path"].values.tolist()
 
 
 def set_logger() -> None:
@@ -297,6 +297,9 @@ def run(args: dict) -> None:
                 init_time=init_time,
                 fs_time=fs_time
             )
+
+            del dataloader, ccea
+            gc.collect()
 
             # Aggregate and save results
             run_results = pd.concat([run_stats, train_metrics, test_metrics], axis=1)
