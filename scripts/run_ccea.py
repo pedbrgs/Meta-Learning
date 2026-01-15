@@ -75,6 +75,7 @@ def load_data_conf(random_state: int) -> dict:
         "general": {
             "splitter_type": "k_fold",
             "verbose": True,
+            "float_dtype": "float32",
             "seed": random_state
         },
         "splitter": {
