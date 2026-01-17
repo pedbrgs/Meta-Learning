@@ -102,6 +102,7 @@ def load_ccea_conf(random_state: int, is_debug: bool) -> dict:
             "max_gen": 1 if is_debug else 1000,
             "max_gen_without_improvement": 2 if is_debug else 10,
             "optimized_resource_allocation": True,
+            "max_best_context_vectors": 0,
             "seed" : random_state
         },
         "decomposition": {
