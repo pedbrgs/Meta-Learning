@@ -120,7 +120,8 @@ def load_ccea_conf(random_state: int, is_debug: bool) -> dict:
         "wrapper": {
             "task": "classification",
             "cache_size": 2000,
-            "model_type": "random_forest"
+            "model_type": "random_forest",
+            "use_subprocess": True
         },
         "evaluation": {
             "fitness_function": "penalty",
