@@ -105,7 +105,7 @@ def load_data_conf(random_state: int) -> dict:
         },
         "normalization": {
             "normalize": True,
-            "method": "min_dmax"
+            "method": "min_max"
         },
         "preprocessing": {
             "drop_na": True,
