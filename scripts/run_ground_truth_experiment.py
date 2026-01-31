@@ -165,13 +165,21 @@ def cumulative_standard_error(series: pd.Series) -> pd.Series:
     return series.expanding().std() / series.expanding().count().pow(0.5)
 
 
-def get_completed_datasets(results: pd.DataFrame, metric_col: str, standard_error_threshold: float, min_runs: int, max_runs: int) -> list:
-    if results.empty: return []
+def get_completed_datasets(
+        results: pd.DataFrame,
+        metric_col: str,
+        standard_error_threshold: float,
+        min_runs: int,
+        max_runs: int
+    ) -> list:
     errors = results.groupby("dataset")[metric_col].apply(cumulative_standard_error)
     achieved_errors = errors.groupby(level=0).last()
     run_counts = results.groupby("dataset").size()
+    # Condition 1: achieved error threshold and meets minimum number of runs
     cond_error_met = (achieved_errors <= standard_error_threshold) & (run_counts >= min_runs)
+    # Condition 2: did not achieve error threshold but reached maximum number of runs
     cond_error_failed = (achieved_errors > standard_error_threshold) & (run_counts >= max_runs)
+    # Completed if either condition holds
     completed_mask = cond_error_met | cond_error_failed
     return achieved_errors.index[completed_mask].tolist()
 
@@ -267,16 +275,20 @@ def run() -> None:
     if not datasets:
         logging.info("Data folder is empty.")
         return
-
-    logging.info(f"Datasets: {datasets}")
+  
+    logging.info(f"Datasets: {datasets}.")
     results = load_results()
-    
-    completed_datasets = get_completed_datasets(
-        results=results, metric_col=args.metric_col,
-        standard_error_threshold=args.se_thresh,
-        min_runs=args.min_runs, max_runs=args.max_runs
-    )
-    datasets = [d for d in datasets if d not in completed_datasets]
+    if not results.empty:
+        completed_datasets = get_completed_datasets(
+            results=results,
+            metric_col=args.metric_col,
+            standard_error_threshold=args.se_thresh,
+            min_runs=args.min_runs,
+            max_runs=args.max_runs
+        )
+        datasets = [dataset for dataset in datasets if dataset not in completed_datasets]
+        logging.info(f"Completed datasets: {completed_datasets}.")
+    logging.info(f"Datasets for experiments: {datasets}.")
 
     for dataset_name in datasets:
 
