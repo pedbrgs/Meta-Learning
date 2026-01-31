@@ -8,6 +8,10 @@ import pandas as pd
 import numpy as np
 import ast
 
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
 import warnings
 from sklearn.exceptions import ConvergenceWarning
 warnings.filterwarnings(action="ignore", category=DeprecationWarning)
@@ -250,12 +254,13 @@ def get_overall_stats(**kwargs) -> pd.DataFrame:
     return pd.DataFrame.from_dict(run_stats, orient="index").T
 
 
-def check_stopping_criteria(results: pd.DataFrame, args, dataset_name: str, n_runs: int) -> bool:
+def check_stopping_criteria(results: pd.DataFrame, args: dict, dataset_name: str, n_runs: int) -> bool:
+
     metric_series = results[results["dataset"] == dataset_name][args.metric_col]
-    if metric_series.empty or len(metric_series) < 2: return False
+    if metric_series.empty:
+        return False
     errors = cumulative_standard_error(metric_series)
-    current_error = errors.iloc[-1]
-    if (n_runs >= args.min_runs) and (current_error <= args.se_thresh):
+    if (n_runs >= args.min_runs) and (errors.iloc[-1] <= args.se_thresh):
         logging.info(f"Standard error threshold achieved ({errors.iloc[-1]:.2f}%). ")
         logging.info(f"Ending experiments for dataset: {dataset_name}.")
         return True
