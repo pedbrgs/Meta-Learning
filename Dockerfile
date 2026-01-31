@@ -2,6 +2,11 @@ FROM python:3.13-slim
 WORKDIR /meta-learning
 RUN mkdir -p /meta-learning/results
 
+ENV OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    PYTHONUNBUFFERED=1
+
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
     git \

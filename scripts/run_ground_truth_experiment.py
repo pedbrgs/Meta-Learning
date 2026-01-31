@@ -6,11 +6,7 @@ import logging
 import argparse
 import pandas as pd
 import numpy as np
-import ast
 
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
 import warnings
 from sklearn.exceptions import ConvergenceWarning
