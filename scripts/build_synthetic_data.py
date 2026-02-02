@@ -36,23 +36,35 @@ def parse_args():
 
 
 def build_synthetic_dataset(args):
-    """Generates a synthetic dataset using the arguments provided via CLI."""
+    """Generate a synthetic dataset."""
 
-    # Derived calculations
+    rng = np.random.default_rng(args.seed)
+
     n_samples = int(args.n_features * args.sample_ratio)
     n_informative = int(args.perc_informative * args.n_features)
-    weights = [0.55, 0.45] # Fixed class weights based on your previous requirement
+
+    n_signal = (
+        n_informative +
+        args.n_redundant +
+        args.n_repeated
+    )
+
+    n_noise = args.n_features - n_signal
+    weights = [0.55, 0.45]
 
     print(f"--- Configuration ---")
-    print(f"Features: {args.n_features} | Samples: {n_samples}")
-    print(f"Informative Features (Ground Truth): First {n_informative} columns.")
-    print(f"Output Directory: {args.output_dir}")
+    print(f"Samples: {n_samples}")
+    print(f"Total Features: {args.n_features}")
+    print(f"Informative: {n_informative}")
+    print(f"Redundant: {args.n_redundant}")
+    print(f"Repeated: {args.n_repeated}")
+    print(f"Noise: {n_noise}")
+    print(f"Ground Truth: columns [0:{n_informative}]")
 
-    # Generate synthetic data
-    # shuffle=False is critical to keep informative features at indices [0 : n_informative]
-    X, y = make_classification(
+    # Generate signal/informative features
+    X_signal, y = make_classification(
         n_samples=n_samples,
-        n_features=args.n_features,
+        n_features=n_signal,
         n_informative=n_informative,
         n_redundant=args.n_redundant,
         n_repeated=args.n_repeated,
@@ -62,46 +74,53 @@ def build_synthetic_dataset(args):
         flip_y=args.flip_y,
         weights=weights,
         random_state=args.seed,
-        shuffle=False 
+        shuffle=False  # keeps informative features first
     )
 
-    # Convert to DataFrame using float32 to optimize RAM usage on EC2
-    df = pd.DataFrame(X).astype("float32")
-    df["label"] = y.astype("int8")
-    
-    # Free up memory from raw numpy arrays
-    del X, y
+    # Generate noise features
+    if n_noise > 0:
+        X_noise = rng.normal(
+            loc=0.0,
+            scale=1.0,
+            size=(n_samples, n_noise)
+        ).astype("float32")
+
+        X = np.hstack([X_signal, X_noise])
+        del X_noise
+    else:
+        X = X_signal
+
+    del X_signal
     gc.collect()
 
-    # Stratified split to maintain class balance in both train and test sets
+    # Build dataframe
+    df = pd.DataFrame(X, dtype="float32")
+    df["label"] = y.astype("int8")
+    del X, y
+    gc.collect()
+    # Split data
     train_data, test_data = train_test_split(
-        df, 
-        test_size=args.test_size, 
-        random_state=args.seed, 
+        df,
+        test_size=args.test_size,
+        random_state=args.seed,
         stratify=df["label"]
     )
 
-    # Tag subsets
     train_data["subset"] = "train"
     test_data["subset"] = "test"
-    
-    # Combine for storage
     final_df = pd.concat([train_data, test_data], ignore_index=True)
-    
-    # Ensure directory exists
+
+    # Save dataset
     os.makedirs(args.output_dir, exist_ok=True)
-    
-    # Save results
     filename = f"synthetic_ground_truth_s{n_samples}_f{args.n_features}.parquet"
     full_path = os.path.join(args.output_dir, filename)
     final_df.to_parquet(full_path, index=False)
-    
+
     print(f"--- Generation Complete ---")
     print(f"Saved to: {full_path}")
     print(f"Memory Usage: {final_df.memory_usage(deep=True).sum() / 1e9:.2f} GB")
 
 
-if __name__ == '__main__':
-    # Parse CLI arguments and run the generator
-    cli_args = parse_args()
-    build_synthetic_dataset(cli_args)
+if __name__ == "__main__":
+    args = parse_args()
+    build_synthetic_dataset(args)
