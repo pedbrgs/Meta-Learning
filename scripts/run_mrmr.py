@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from abc import ABC
-from mrmr import mrmr_classif
+from feature_engine.selection import MRMR
 from typing import Callable, List, Tuple
 from sklearn.base import ClassifierMixin
 from sklearn.base import clone as sklearn_clone
@@ -107,12 +107,22 @@ class MinimumRedundancyMaximumRelevance(ABC):
         List[str]
             A list of selected feature names.
         """
-        selected_features = mrmr_classif(
-            X=X_train,
-            y=y_train,
-            K=n_features
+        selector = MRMR(
+            variables=None,
+            method="MID",       # MID uses Mutual Information which supports n_jobs
+            regression=False,
+            max_features=n_features,
+            n_jobs=3,          # Uses all available cores
+            random_state=self.random_state
         )
-        return selected_features
+
+        # Ensure y_train has a name to avoid feature-engine internal errors
+        if y_train.name is None:
+            y_train.name = "target"
+
+        selector.fit(X_train, y_train)
+
+        return selector.get_feature_names_out()
 
     def _reset_estimator(self) -> ClassifierMixin:
         """Return a fresh, unfitted copy of the base estimator.
@@ -192,7 +202,7 @@ class MinimumRedundancyMaximumRelevance(ABC):
                 # Run feature selection
                 selected_features = self.select(
                     X_train=X_train_df,
-                    y_train=pd.Series(y_f_train),
+                    y_train=pd.Series(y_f_train, name="target"),
                     n_features=k
                 )
 
