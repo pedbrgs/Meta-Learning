@@ -206,15 +206,17 @@ def literal_eval(array_str: str) -> np.ndarray:
 
 def get_overall_stats(**kwargs) -> pd.DataFrame:
 
-    total_features = kwargs["ccea"].data.n_features
-    features = list(range(int(total_features)))
-    n_informative = int(0.01 * total_features)
-    informative_features = list(range(int(n_informative)))
-    removed_features = kwargs["ccea"].removed_features
-    context_vector = kwargs["ccea"].best_context_vector
-    feature_indices = kwargs["ccea"].feature_idxs
-    remaining_features = np.array(list(set(features).difference(removed_features)))
-    selected_features = remaining_features[feature_indices][context_vector.astype(bool)]
+    total_features = int(kwargs["ccea"].data.n_features)
+    features = np.arange(total_features)
+    n_informative = int(0.30 * total_features)
+    informative_features = np.arange(n_informative)
+
+    removed_features = np.asarray(kwargs["ccea"].removed_features, dtype=int)
+    context_vector = kwargs["ccea"].best_context_vector.astype(bool)
+    feature_indices = getattr(kwargs["ccea"], "best_feature_idxs", kwargs["ccea"].feature_idxs)
+
+    remaining_features = np.setdiff1d(features, removed_features, assume_unique=True)
+    selected_features = remaining_features[feature_indices][context_vector]
 
     jaccard_index = calculate_jaccard(selected_features, informative_features)
     hit_rate = calculate_hit_rate(selected_features, informative_features)
