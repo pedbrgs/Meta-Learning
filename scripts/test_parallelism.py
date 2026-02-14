@@ -28,13 +28,26 @@ def build_dataloader(data_path: str, dataset_name: str, data_conf: dict) -> Data
     return dataloader
 
 
+# Initialize the logger globally
+logger = logging.getLogger("CCEA_Experiment")
+
 def set_logger() -> None:
-    logging.basicConfig(level=logging.INFO)
-    logging.getLogger().handlers = []
+    """Configures the global logger."""
+    logger.setLevel(logging.INFO)
+
+    # Clear handlers to prevent duplicate logs if function is called twice
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("%(message)s"))
-    logging.getLogger().addHandler(handler)
+    logger.addHandler(handler)
 
+    # Crucial: Stop logs from being intercepted/silenced by the root logger
+    logger.propagate = False
+
+# Initialize the logger configuration
+set_logger()
 
 def load_results(root_path: str = "results", output_file: str = "experiments.parquet") -> pd.DataFrame:
     os.makedirs(root_path, exist_ok=True)
@@ -134,7 +147,7 @@ def get_completed_tasks(results: pd.DataFrame, args) -> set:
         errors = cumulative_standard_error(group[args.metric_col])
         last_error = errors.iloc[-1]
         n_runs = len(group)
-        
+
         cond_met = (last_error <= args.se_thresh) and (n_runs >= args.min_runs)
         cond_max = (n_runs >= args.max_runs)
         return cond_met or cond_max
@@ -202,15 +215,15 @@ def check_stopping_criteria(results: pd.DataFrame, args: dict, dataset_name: str
     
     if metric_series.empty:
         return False
-        
+
     errors = cumulative_standard_error(metric_series)
     last_error = errors.iloc[-1]
     
     if (n_runs >= args.min_runs) and (last_error <= args.se_thresh):
-        logging.info(f"Stopping threshold reached for {dataset_name} (workers: {n_workers}): {last_error:.4f}")
+        logger.info(f"Stopping threshold reached for {dataset_name} (workers: {n_workers}): {last_error:.4f}")
         return True
     if n_runs >= args.max_runs:
-        logging.info(f"Maximum number of runs reached for {dataset_name} (workers: {n_workers})")
+        logger.info(f"Maximum number of runs reached for {dataset_name} (workers: {n_workers})")
         return True
     return False
 
@@ -222,7 +235,7 @@ def run(args: dict) -> None:
     datasets = ["swarm_behaviour_aligned", "pcam"]
     workers_range = list(range(1, args.max_workers + 1))
 
-    logging.info(f"Datasets: {datasets}.")
+    logger.info(f"Datasets: {datasets}.")
     results = load_results(output_file="parallel_scaling_results.parquet")
     completed_tasks = get_completed_tasks(results, args)
 
@@ -230,15 +243,15 @@ def run(args: dict) -> None:
 
         dataset_file = f"{dataset_name}.parquet"
         data_path = os.path.join(args.data_dir, dataset_file)
-        logging.info(f"Starting experiments for dataset: {dataset_name}.")
+        logger.info(f"Starting experiments for dataset: {dataset_name}.")
 
         for nw in workers_range:
 
             if (dataset_name, nw) in completed_tasks:
-                logging.info(f"Skipping {dataset_name} with {nw} workers: criterion already satisfied.")
+                logger.info(f"Skipping {dataset_name} with {nw} workers: criterion already satisfied.")
                 continue
 
-            logging.info(f"Experiment: {dataset_name} | workers: {nw}")
+            logger.info(f"Experiment: {dataset_name} | workers: {nw}")
 
             if not results.empty and "n_workers" in results.columns:
                 mask = (results["dataset"] == dataset_name) & (results["n_workers"] == nw)
@@ -249,25 +262,25 @@ def run(args: dict) -> None:
             while True:
                 n_runs += 1
                 random_state = random.randint(0, 10_000)
-                logging.info(f"Run #{n_runs} for {dataset_name} (workers = {nw})")
+                logger.info(f"Run #{n_runs} for {dataset_name} (workers = {nw})")
 
                 data_conf = load_data_conf(random_state=random_state)
                 dataloader = build_dataloader(data_path, dataset_name, data_conf)
                 dataloader.get_ready()
-                
+
                 ccea_conf = load_ccea_conf(random_state, args.is_debug, n_workers=nw)
 
                 start_init = time.time()
                 ccea = CCPSTFG(conf=ccea_conf, data=dataloader, verbose=False)
                 init_time = time.time() - start_init
-                
+
                 start_fs = time.time()
                 ccea.optimize()
                 fs_time = time.time() - start_fs
 
                 train_metrics = evaluate_context_vector(ccea, subset="train")
                 test_metrics = evaluate_context_vector(ccea, subset="test")
-                
+
                 run_stats = get_overall_stats(
                     dataset_name=dataset_name,
                     n_workers=nw,
