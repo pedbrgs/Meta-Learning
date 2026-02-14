@@ -284,7 +284,7 @@ def run(args: dict) -> None:
                 del dataloader, ccea
                 gc.collect()
 
-                if check_stopping_criteria(results, args, dataset_name, nw, n_runs):
+                if check_stopping_criteria(results, args, dataset_name, n_runs, nw):
                     break
 
 
