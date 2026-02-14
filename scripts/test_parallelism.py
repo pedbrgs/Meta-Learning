@@ -219,7 +219,7 @@ def run(args: dict) -> None:
 
     set_logger()
 
-    datasets = ["dorothea", "dota2"]
+    datasets = ["swarm_behaviour_aligned", "pcam"]
     workers_range = list(range(1, args.max_workers + 1))
 
     logging.info(f"Datasets: {datasets}.")
@@ -295,7 +295,7 @@ def parse_args():
     parser.add_argument("--se-thresh", type=float, default=0.03)
     parser.add_argument("--min-runs", type=int, default=5)
     parser.add_argument("--max-runs", type=int, default=30)
-    parser.add_argument("--max-workers", type=int, default=8)
+    parser.add_argument("--max-workers", type=int, default=12)
     parser.add_argument("--is-debug", action="store_true")
     return parser.parse_args()
 
