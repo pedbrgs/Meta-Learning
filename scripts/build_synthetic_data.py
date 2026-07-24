@@ -14,18 +14,18 @@ def parse_args():
     
     # Dataset size and ground truth parameters
     parser.add_argument("--n-features", type=int, default=100000, help="Total number of features")
-    parser.add_argument("--sample-ratio", type=float, default=0.1, help="Ratio of samples relative to features")
-    parser.add_argument("--perc-informative", type=float, default=0.30, help="Percentage of informative features")
+    parser.add_argument("--sample-ratio", type=float, default=0.5, help="Ratio of samples relative to features")
+    parser.add_argument("--perc-informative", type=float, default=0.05, help="Percentage of informative features")
     
     # Structural complexity parameters (requested)
     parser.add_argument("--n-redundant", type=int, default=0, help="Number of redundant features (linear combinations)")
     parser.add_argument("--n-repeated", type=int, default=0, help="Number of duplicated features")
-    parser.add_argument("--n-clusters-per-class", type=int, default=3, help="Clusters per class (complexity of distribution)")
+    parser.add_argument("--n-clusters-per-class", type=int, default=1, help="Clusters per class (complexity of distribution)")
     parser.add_argument("--n-classes", type=int, default=2, help="Number of target classes")
     
     # Data quality and split parameters
-    parser.add_argument("--class-sep", type=float, default=0.8, help="How separable classes are (higher is easier)")
-    parser.add_argument("--flip-y", type=float, default=0.01, help="Random noise applied to labels")
+    parser.add_argument("--class-sep", type=float, default=3.0, help="How separable classes are (higher is easier)")
+    parser.add_argument("--flip-y", type=float, default=0.0, help="Random noise applied to labels")
     parser.add_argument("--test-size", type=float, default=0.30, help="Proportion of dataset for test split")
     
     # Infrastructure parameters
